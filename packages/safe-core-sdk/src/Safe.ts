@@ -279,6 +279,7 @@ class Safe {
         operation: OperationType.DelegateCall
       }
       newTransaction = multiSendTransaction
+      console.log(multiSendTransaction);
     } else {
       newTransaction = isMetaTransactionArray(safeTransactions)
         ? { ...options, ...safeTransactions[0] }

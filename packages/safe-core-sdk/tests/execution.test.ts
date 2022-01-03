@@ -340,7 +340,12 @@ describe('Transactions execution', () => {
           data: '0x'
         }
       ]
-      const multiSendTx = await safeSdk1.createTransaction(txs)
+      const multiSendTx = await safeSdk1.createTransaction(txs, {
+        refundReceiver: account2.address,
+        gasToken: "0x0000000000000000000000000000000000000000",
+        safeTxGas: 1000000,
+        baseGas: 100000
+      })
       await safeSdk1.signTransaction(multiSendTx)
       const txHash = await safeSdk2.getTransactionHash(multiSendTx)
       const txResponse1 = await safeSdk2.approveTransactionHash(txHash)
@@ -368,6 +373,12 @@ describe('Transactions execution', () => {
         safeAddress: safe.address,
         contractNetworks
       })
+      await account1.signer.sendTransaction({
+        to: safe.address,
+        value: BigNumber.from('1000000000000000000') // 1 ETH
+      })
+      const safeBalance = await safeSdk1.getBalance();
+      console.log(safeBalance.toString());
       const ethAdapter2 = await getEthAdapter(account2.signer)
       const safeSdk2 = await safeSdk1.connect({ ethAdapter: ethAdapter2 })
       const ethAdapter3 = await getEthAdapter(account3.signer)
@@ -397,17 +408,29 @@ describe('Transactions execution', () => {
           ])
         }
       ]
-      const multiSendTx = await safeSdk1.createTransaction(txs)
+      const account2Balance = await account2.signer.getBalance();
+      console.log(account2Balance.toString());
+      const multiSendTx = await safeSdk1.createTransaction(txs, {
+        refundReceiver: account2.address,
+        gasPrice: 100001,
+        safeTxGas: 200000
+      })
       await safeSdk1.signTransaction(multiSendTx)
       const txHash = await safeSdk2.getTransactionHash(multiSendTx)
       const txResponse1 = await safeSdk2.approveTransactionHash(txHash)
+      const account2BalanceApprove = await account2.signer.getBalance();
+      console.log(account2BalanceApprove.toString());
       await waitSafeTxReceipt(txResponse1)
       const txResponse2 = await safeSdk3.executeTransaction(multiSendTx)
       await waitSafeTxReceipt(txResponse2)
+      const account2BalanceAfter = await account2.signer.getBalance();
+      console.log(account2BalanceAfter.toString());
 
       const safeFinalERC20Balance = await erc20Mintable.balanceOf(safe.address)
       chai.expect(safeFinalERC20Balance.toString()).to.be.eq('0') // 0 ERC20
       const accountFinalERC20Balance = await erc20Mintable.balanceOf(account2.address)
+      const safeBalanceAfter = await safeSdk1.getBalance();
+      console.log(safeBalanceAfter.toString());
       chai.expect(accountFinalERC20Balance.toString()).to.be.eq('1200000000000000000') // 1.2 ERC20
     })
   })
